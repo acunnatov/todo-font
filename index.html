@@ -61,17 +61,20 @@
 
             // Fetch todos and render them
             const fetchTodos = async () => {
-                try {
-                    const response = await fetch(API_URL);
-                    const data = await response.json();
-                    document.getElementById('todo-list').innerHTML = '';
-                    data.forEach(todo => {
-                        renderTodoItem(todo);
-                    });
-                } catch (error) {
-                    console.error('Error fetching todos:', error);
-                }
-            };
+    try {
+        const response = await fetch(API_URL);
+        const data = await response.json();
+        // Sort todos in reverse order based on the createdAt field
+        data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        document.getElementById('todo-list').innerHTML = '';
+        data.forEach(todo => {
+            renderTodoItem(todo);
+        });
+    } catch (error) {
+        console.error('Error fetching todos:', error);
+    }
+};
+
 
             // Render a single todo item
             const renderTodoItem = (todo) => {
