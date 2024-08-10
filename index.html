@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo List</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container {
+            max-width: 600px;
+            margin-top: 50px;
+        }
+        .list-group-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .list-group-item.completed {
+            background-color: #d4edda;
+            text-decoration: line-through;
+            color: #6c757d;
+        }
+        .list-group-item span {
+            font-size: 18px;
+            font-weight: 500;
+        }
+        .btn-success, .btn-danger {
+            margin-left: 5px;
+        }
+        .input-group-append .btn {
+            border-radius: 0 5px 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">Task Manager</h1>
+        <form id="todo-form" class="mb-4">
+            <div class="input-group">
+                <input type="text" id="task-input" class="form-control" placeholder="Enter a new task">
+                <div class="input-group-append">
+                    <button class="btn btn-primary" type="submit">Add Task</button>
+                </div>
+            </div>
+        </form>
+        <ul id="todo-list" class="list-group"></ul>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const API_URL = 'http://localhost:3000/api/todo'; // Update with your actual backend URL
+
+            // Fetch todos and render them
+            const fetchTodos = async () => {
+                try {
+                    const response = await fetch(API_URL);
+                    const data = await response.json();
+                    document.getElementById('todo-list').innerHTML = '';
+                    data.forEach(todo => {
+                        renderTodoItem(todo);
+                    });
+                } catch (error) {
+                    console.error('Error fetching todos:', error);
+                }
+            };
+
+            // Render a single todo item
+            const renderTodoItem = (todo) => {
+                const todoList = document.getElementById('todo-list');
+                const todoItem = document.createElement('li');
+                todoItem.className = `list-group-item ${todo.completed ? 'completed' : ''}`;
+                todoItem.dataset.id = todo._id;
+
+                const todoContent = document.createElement('span');
+                todoContent.textContent = todo.task;
+                todoItem.appendChild(todoContent);
+
+                const buttonGroup = document.createElement('div');
+
+                const completeBtn = document.createElement('button');
+                completeBtn.className = 'btn btn-sm btn-success complete-btn';
+                completeBtn.textContent = todo.completed ? 'Undo' : 'Complete';
+                completeBtn.addEventListener('click', function() {
+                    handleComplete(todoItem, todo._id, todo.completed);
+                });
+                buttonGroup.appendChild(completeBtn);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn btn-sm btn-danger delete-btn';
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.addEventListener('click', function() {
+                    handleDelete(todoItem, todo._id);
+                });
+                buttonGroup.appendChild(deleteBtn);
+
+                todoItem.appendChild(buttonGroup);
+                todoList.appendChild(todoItem);
+            };
+
+            // Handle form submission
+            document.getElementById('todo-form').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const taskInput = document.getElementById('task-input');
+                const task = taskInput.value.trim();
+                if (task) {
+                    try {
+                        const response = await fetch(API_URL, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ task })
+                        });
+                        const newTodo = await response.json();
+                        renderTodoItem(newTodo);
+                        taskInput.value = '';
+                    } catch (error) {
+                        console.error('Error adding todo:', error);
+                    }
+                }
+            });
+
+            // Handle task completion
+            const handleComplete = async (todoItem, todoId, isCompleted) => {
+                try {
+                    const response = await fetch(`${API_URL}/${todoId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ completed: !isCompleted })
+                    });
+                    const updatedTodo = await response.json();
+                    todoItem.classList.toggle('completed');
+                    todoItem.querySelector('.complete-btn').textContent = updatedTodo.completed ? 'Undo' : 'Complete';
+                } catch (error) {
+                    console.error('Error updating todo:', error);
+                }
+            };
+
+            // Handle task deletion
+            const handleDelete = async (todoItem, todoId) => {
+                try {
+                    await fetch(`${API_URL}/${todoId}`, {
+                        method: 'DELETE'
+                    });
+                    todoItem.remove();
+                } catch (error) {
+                    console.error('Error deleting todo:', error);
+                }
+            };
+
+            // Initial fetch of todos
+            fetchTodos();
+        });
+    </script>
+</body>
+</html>
